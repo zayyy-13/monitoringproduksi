@@ -3102,3 +3102,82 @@ body.modal-terbuka {
 @media (prefers-reduced-motion: reduce) {
     .keluar-box { animation: none; }
 }
+
+/* =====================================================================
+   MOBILE — GRAFIK BISA DIGESER KE SAMPING (hanya CSS, tanpa ubah HTML/JS)
+   Masalah: di layar HP, grafik dipaksa muat di lebar layar sehingga angka di
+   atas batang dan nama kategori saling bertabrakan. Solusi: kanvas diberi
+   lebar minimum (variabel --min-grafik) lalu area grafik digeser horizontal.
+   Judul kartu tetap terlihat saat digeser (position: sticky).
+   Jika masih sesak, besarkan nilai --min-grafik; jika terlalu lebar, kecilkan.
+   ===================================================================== */
+@media (max-width: 768px) {
+
+    /* 1. Kartu "Produksi bulanan" & "Total produksi per CRO" (halaman Monitoring) */
+    #halamanMonitoring .g.r2:not(.grafik-regional):not(.elemen-tersembunyi) > .c {
+        --min-grafik: 640px;
+        --lebar-lihat: calc(100vw - 72px);
+        display: grid;
+        grid-template-columns: minmax(var(--min-grafik), 1fr);
+        align-content: start;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+    #halamanMonitoring .g.r2:not(.grafik-regional):not(.elemen-tersembunyi) > .c > h2 {
+        position: sticky;
+        left: 0;
+        width: min(100%, var(--lebar-lihat));
+    }
+
+    /* 2. Grafik ringkas (5 tertinggi/terendah, CRO, wilayah) — Monitoring & Laporan Per Regional */
+    .grafik-ringkas { min-width: 0; }
+    .blok-ringkas {
+        --min-grafik: 700px;
+        --lebar-lihat: calc(100vw - 72px);
+        display: grid;
+        grid-template-columns: minmax(var(--min-grafik), 1fr);
+        align-content: start;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+    .blok-ringkas > .pdf-sub-title {
+        position: sticky;
+        left: 0;
+        width: min(100%, var(--lebar-lihat));
+    }
+
+    /* 3. Grafik peringkat kebun (5 tertinggi & 5 terendah) */
+    .kt-blok {
+        --min-grafik: 760px;
+        --lebar-lihat: calc(100vw - 110px);
+        display: grid;
+        grid-template-columns: minmax(var(--min-grafik), 1fr);
+        align-content: start;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+    .kt-blok > h4,
+    .kt-blok > .kt-sub {
+        position: sticky;
+        left: 0;
+        width: min(100%, var(--lebar-lihat));
+    }
+
+    /* Geser horizontal tetap bisa dilakukan dengan jari di atas grafik */
+    .cv canvas, .cv-ringkas canvas, .kt-cv canvas { touch-action: pan-x pan-y pinch-zoom; }
+
+    /* Scrollbar tipis, selaras dengan area grafik Historis */
+    #halamanMonitoring .g.r2 > .c::-webkit-scrollbar,
+    .blok-ringkas::-webkit-scrollbar,
+    .kt-blok::-webkit-scrollbar { height: 6px; }
+    #halamanMonitoring .g.r2 > .c::-webkit-scrollbar-thumb,
+    .blok-ringkas::-webkit-scrollbar-thumb,
+    .kt-blok::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(100, 116, 139, .35); }
+}
