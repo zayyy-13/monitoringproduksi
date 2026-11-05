@@ -3115,7 +3115,7 @@ body.modal-terbuka {
 
     /* 1. Kartu "Produksi bulanan" & "Total produksi per CRO" (halaman Monitoring) */
     #halamanMonitoring .g.r2:not(.grafik-regional):not(.elemen-tersembunyi) > .c {
-        --min-grafik: 640px;
+        --min-grafik: 700px;
         --lebar-lihat: calc(100vw - 72px);
         display: grid;
         grid-template-columns: minmax(var(--min-grafik), 1fr);
@@ -3177,4 +3177,14 @@ body.modal-terbuka {
     #halamanMonitoring .g.r2 > .c::-webkit-scrollbar-thumb,
     .blok-ringkas::-webkit-scrollbar-thumb,
     .kt-blok::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(100, 116, 139, .35); }
+}
+
+/* =====================================================================
+   GRAFIK GABUNGAN (Ton + Ton/Ha): kartu penuh selebar halaman, bertumpuk
+   Produksi bulanan di atas, Total produksi per CRO di bawahnya.
+   ===================================================================== */
+.grafik-penuh > .c { grid-column: 1 / -1; }
+.grafik-penuh .cv { height: 360px; }
+@media (max-width: 768px) {
+    .grafik-penuh .cv { height: 300px; }
 }

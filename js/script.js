@@ -103,11 +103,37 @@ const ExcelLoader = (() => {
     return hasil;
   }
 
+  // Produktivitas (Ton/Ha) per bulan dari sheet "Produktivitas":
+  // baris 38 = GRAND TOTAL; baris CRO I..X = 8, 10, 13, 15, 20, 24, 29, 32, 34, 37 (Subtotal CRO).
+  // Baris dicari lewat labelnya dulu; bila tidak ketemu, dipakai nomor barisnya.
+  // Bulan yang belum ada / kosong / 0 diisi null sehingga tidak tampil di grafik.
+  const BARIS_PROTAS = { "Total": 38, "CRO I": 8, "CRO II": 10, "CRO III": 13, "CRO IV": 15, "CRO V": 20,
+                         "CRO VI": 24, "CRO VII": 29, "CRO VIII": 32, "CRO IX": 34, "CRO X": 37 };
+
+  function bacaProtas(aoa) {
+    const peta = kolomBulan(aoa);
+    const hasil = {};
+    Object.entries(BARIS_PROTAS).forEach(([kunci, nomorBaris]) => {
+      const label = kunci === "Total" ? "GRAND TOTAL" : "Subtotal " + kunci;
+      const baris = aoa.find((b) => teks(b[1]) === label) || aoa[nomorBaris - 1] || [];
+      hasil[kunci] = BULAN.map((b) => {
+        const v = peta[b] === undefined ? null : baris[peta[b]];
+        return typeof v === "number" && isFinite(v) && v !== 0 ? bulat(v, 4) : null;
+      });
+    });
+    return hasil;
+  }
+
   function baca(tab) {
     TAB.forEach((nama) => { if (!tab[nama]) throw new Error(`Tab "${nama}" tidak ditemukan`); });
     const n = hitungBulan(tab["Produksi TBS"]);
     if (n < 2) throw new Error("Data bulanan belum cukup");
-    return { wilayah: bacaWilayah(tab["Produksi TBS"], n), indikator: bacaIndikator(tab, n) };
+    const hasil = { wilayah: bacaWilayah(tab["Produksi TBS"], n), indikator: bacaIndikator(tab, n) };
+    // Sheet "Produktivitas" bersifat opsional: bila tidak ada / gagal dibaca, garis Ton/Ha tidak ditampilkan
+    if (tab["Produktivitas"]) {
+      try { hasil.protasBulanan = bacaProtas(tab["Produktivitas"]); } catch (e) {}
+    }
+    return hasil;
   }
 
   return { baca, TAB };
@@ -276,6 +302,22 @@ const DATA_INDIKATOR_AWAL = {
   },
 };
 let dataIndikator = DATA_INDIKATOR_AWAL;
+
+// Produktivitas bulanan (Ton/Ha) bawaan dari sheet "Produktivitas" (Jan–Sep). Diganti otomatis saat Excel diunggah.
+const DATA_PROTAS_AWAL = {
+  "Total": [0.4883, 0.4253, 0.4007, 0.5497, 0.5653, 0.6813, 0.7608, 0.9209, 0.7661],
+  "CRO I": [0.3032, 0.2645, 0.2385, 0.3013, 0.2614, 0.4269, 0.5112, 0.6168, 0.5531],
+  "CRO II": [1.3079, 1.1085, 1.0168, 1.4585, 1.524, 1.7348, 1.9517, 1.8019, 1.8377],
+  "CRO III": [0.3936, 0.364, 0.3235, 0.4531, 0.4264, 0.5159, 0.5782, 2.059, 0.6477],
+  "CRO IV": [0.0302, 0.039, 0.0634, 0.0737, 0.0758, 0.2266, 0.6559, 0.6849, 0.4694],
+  "CRO V": [0.419, 0.3521, 0.3331, 0.3697, 0.3894, 0.4806, 0.4742, 0.4113, 0.3933],
+  "CRO VI": [0.3897, 0.3474, 0.2822, 0.4349, 0.4867, 0.5721, 0.5867, 0.5637, 0.609],
+  "CRO VII": [0.7069, 0.5704, 0.5035, 0.622, 0.6123, 0.5633, 0.7464, 0.7205, 0.8148],
+  "CRO VIII": [0.2619, 0.2464, 0.2952, 0.3816, 0.3907, 0.4522, 0.3971, 0.408, 0.4707],
+  "CRO IX": [0.9672, 0.7624, 0.7902, 0.9174, 0.9377, 1.1249, 1.0281, 0.9211, 1.168],
+  "CRO X": [0.1097, 0.1192, 0.0629, 0.0606, 0.0706, 0.2006, 0.1991, 0.1838, 0.1809],
+};
+let protasAktif = DATA_PROTAS_AWAL;
 
 const el = (id) => document.getElementById(id);
 const jumlahArr = (arr) => arr.reduce((a, b) => a + b, 0);
@@ -454,6 +496,8 @@ try {
   if (tersimpanMon) {
     dataAktif = tersimpanMon.wilayah.map(keWilayah);
     dataIndikator = tersimpanMon.indikator;
+    // Data tersimpan dari versi lama belum memuat Ton/Ha -> pakai data bawaan sampai Excel diunggah ulang
+    protasAktif = tersimpanMon.protasBulanan || DATA_PROTAS_AWAL;
   }
 
   const tersimpanLap = JSON.parse(localStorage.getItem(KUNCI_LAPORAN) || "null");
@@ -548,42 +592,122 @@ function renderGrafikProduksi(wilayah, ringkasan, protas) {
     return grad;
   }
 
+  // ===== Grafik gabungan: batang Ton (sumbu kiri) + garis merah Ton/Ha (sumbu kanan) =====
+  const WARNA_GARIS = "#dc2626";
+  const adaNilai = (arr) => arr.some((v) => typeof v === "number");
+  const rataBaris = (arr, i) => (typeof arr[i] === "number" ? arr[i] : null);
+
+  const datasetGaris = (data) => ({
+    type: "line",
+    label: "Ton/Ha",
+    data,
+    yAxisID: "y2",
+    order: 0,
+    borderColor: WARNA_GARIS,
+    backgroundColor: WARNA_GARIS,
+    borderWidth: 3,
+    tension: 0.25,
+    spanGaps: false,                     // bulan tanpa data = tidak ada titik / garis
+    pointRadius: 5,
+    pointHoverRadius: 7,
+    pointBackgroundColor: "#ffffff",
+    pointBorderColor: WARNA_GARIS,
+    pointBorderWidth: 2,
+  });
+
+  const opsiGabungan = (adaGaris) => ({
+    ...opsi,
+    layout: { padding: { top: 24 } },
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: {
+        display: adaGaris,
+        position: "bottom",
+        labels: { color: tema.teks, usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 18, font: fontGrafik(12) },
+      },
+      tooltip: {
+        callbacks: {
+          label: (c) => `${c.dataset.label}: ${fmt(c.parsed.y, c.dataset.yAxisID === "y2" ? 2 : 0)}`,
+        },
+      },
+    },
+    scales: {
+      ...opsi.scales,
+      y2: {
+        display: adaGaris,
+        position: "right",
+        grace: "10%",
+        ticks: { color: WARNA_GARIS, font: fontGrafik(12), callback: (v) => fmt(+v, 2) },
+        grid: { drawOnChartArea: false },
+        afterFit: (sk) => { sk.width += 12; },
+      },
+    },
+  });
+
+  // Kunci data Ton/Ha mengikuti filter CRO: "Semua" -> Total (GRAND TOTAL), "CRO II" -> Subtotal CRO II, dst.
+  const kunciProtas = ringkasan.kunciProtas || "Total";
+  const garisBulanan = label.map((_, i) => rataBaris(protasAktif[kunciProtas] || [], i));
+  const adaGarisBulanan = adaNilai(garisBulanan);
+
   buatChart("c1", {
     type: "bar",
     plugins: [pluginLabelBar],
     data: {
       labels: label,
-      datasets: [{
-        data: bulanan,
-        backgroundColor: function(context) {
-          const { ctx, chartArea } = context.chart;
-          if (context.dataIndex === label.length - 1) {
-            return buatGradient(ctx, chartArea, ...GRAD_KUNING);
-          }
-          return buatGradient(ctx, chartArea, ...GRAD_HIJAU);
+      datasets: [
+        {
+          label: "Ton",
+          data: bulanan,
+          yAxisID: "y",
+          order: 1,
+          backgroundColor: function(context) {
+            const { ctx, chartArea } = context.chart;
+            if (context.dataIndex === label.length - 1) {
+              return buatGradient(ctx, chartArea, ...GRAD_KUNING);
+            }
+            return buatGradient(ctx, chartArea, ...GRAD_HIJAU);
+          },
+          borderRadius: 6,
+          barPercentage: 0.6,
+          categoryPercentage: 0.8,
         },
-        borderRadius: 6,
-      }],
+        ...(adaGarisBulanan ? [datasetGaris(garisBulanan)] : []),
+      ],
     },
-    options: { ...opsi, layout: { padding: { top: 24 } } },
+    options: opsiGabungan(adaGarisBulanan),
   });
 
   const daftarCro = [...new Set(wilayah.map((w) => w.cro))];
+  // Ton/Ha per CRO = akumulasi (jumlah) produktivitas bulanan yang sudah ada datanya, Jan–Des
+  const garisCro = daftarCro.map((c) => {
+    const bulanAda = (protasAktif[c] || []).slice(0, label.length).filter((v) => typeof v === "number");
+    return bulanAda.length ? +jumlahArr(bulanAda).toFixed(2) : null;
+  });
+  const adaGarisCro = adaNilai(garisCro);
+
   buatChart("c2", {
     type: "bar",
     plugins: [pluginLabelBar],
     data: {
       labels: daftarCro.map((c) => c.replace("CRO ", "")),
-      datasets: [{
-        data: daftarCro.map((c) => jumlahArr(wilayah.filter((w) => w.cro === c).map(totalProduksi))),
-        backgroundColor: function(context) {
-          const { ctx, chartArea } = context.chart;
-          return buatGradient(ctx, chartArea, ...GRAD_HIJAU);
+      datasets: [
+        {
+          label: "Ton",
+          data: daftarCro.map((c) => jumlahArr(wilayah.filter((w) => w.cro === c).map(totalProduksi))),
+          yAxisID: "y",
+          order: 1,
+          backgroundColor: function(context) {
+            const { ctx, chartArea } = context.chart;
+            return buatGradient(ctx, chartArea, ...GRAD_HIJAU);
+          },
+          borderRadius: 6,
+          barPercentage: 0.6,
+          categoryPercentage: 0.8,
         },
-        borderRadius: 6,
-      }],
+        ...(adaGarisCro ? [datasetGaris(garisCro)] : []),
+      ],
     },
-    options: { ...opsi, layout: { padding: { top: 24 } } },
+    options: opsiGabungan(adaGarisCro),
   });
 
   el("c3w").style.height = Math.max(260, protas.length * 22 + 40) + "px";
@@ -685,6 +809,7 @@ function render() {
     tmReal: jumlahArr(wilayah.map((w) => w.tmReal)),
     tmRkap: jumlahArr(wilayah.map((w) => w.tmRkap)),
     idxPuncak: bulanan.indexOf(Math.max(...bulanan)),
+    kunciProtas: filterMain === "Semua" ? "Total" : filterMain,
   };
 
   el("sub").textContent =
@@ -705,9 +830,10 @@ function render() {
   renderTabel(urut, protas);
 }
 
-function pasangData({ wilayah, indikator }) {
+function pasangData({ wilayah, indikator, protasBulanan }) {
   dataAktif = wilayah.map(keWilayah);
   dataIndikator = indikator;
+  protasAktif = protasBulanan || {};
   isiFilter();
   render();
 }
@@ -727,6 +853,9 @@ if (inputMon) {
         if (!sheet) throw new Error(`Tab "${nama}" tidak ditemukan`);
         tab[nama] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
       });
+      if (buku.Sheets["Produktivitas"]) {
+        tab["Produktivitas"] = XLSX.utils.sheet_to_json(buku.Sheets["Produktivitas"], { header: 1, defval: null });
+      }
       const hasil = ExcelLoader.baca(tab);
       pasangData(hasil);
       try { localStorage.setItem(KUNCI_MONITORING, JSON.stringify(hasil)); } catch (err) {}
