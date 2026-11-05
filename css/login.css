@@ -246,15 +246,77 @@ body {
     .foot { margin-top: 14px; line-height: 1.5; }
 }
 
-/* ---------- Responsif ---------- */
+/* ---------- Responsif (mobile) ----------
+   Susunan TETAP berdampingan seperti di web (foto kiri, formulir kanan).
+   Yang berubah hanya ukuran: makin sempit layar, makin kecil elemennya. */
+
+/* Tablet / layar sedang (<= 860px) */
 @media (max-width: 860px) {
-    .login-wrap { grid-template-columns: 1fr; }
-    .scene { padding: 12px 12px 0; }
-    .foto { height: 230px; min-height: 0; border-radius: 22px; }
-    .panel { padding-top: 76px; }
-    .tema { top: 20px; right: 20px; }
-    .logo-form { width: 116px; height: 116px; }
-    .card h2 { font-size: 30px; }
+    .login-wrap { grid-template-columns: .85fr 1fr; min-height: 100vh; min-height: 100dvh; }
+    .scene { padding: 12px; }
+    .foto {
+        height: calc(100vh - 24px);
+        height: calc(100dvh - 24px);
+        min-height: 440px;
+        border-radius: 24px;
+        position: sticky;
+        top: 12px;
+    }
+    .panel { padding: 64px 22px 24px; font-size: 15px; }
+    .tema { top: 14px; right: 16px; height: 38px; padding: 0 14px 0 11px; font-size: 13px; border-radius: 19px; }
+    .tema svg { width: 18px; height: 18px; }
+    .logo-form { width: 96px; height: 96px; margin-bottom: 12px; padding: 7px; }
+    .card h2 { font-size: 28px; }
+    .card .sub { font-size: 14px; margin-bottom: 20px; }
+    .field { margin-bottom: 14px; }
+    .field label { font-size: 13px; margin-bottom: 6px; }
+    .input input { padding: 13px 46px 13px 44px; font-size: 16px; border-radius: 12px; }
+    .input svg.ico { left: 14px; width: 18px; height: 18px; }
+    .eye { width: 36px; height: 36px; right: 6px; }
+    .row { font-size: 13px; margin-bottom: 16px; flex-wrap: wrap; gap: 6px 10px; }
+    .btn { padding: 14px 16px; font-size: 16px; border-radius: 12px; }
+    .foot { font-size: 12px; margin-top: 16px; }
+}
+
+/* Ponsel (<= 560px): foto jadi strip ramping di kiri, formulir di kanan */
+@media (max-width: 560px) {
+    .login-wrap { grid-template-columns: .5fr 1fr; }
+    .scene { padding: 8px 0 8px 8px; }
+    .foto {
+        height: calc(100vh - 16px);
+        height: calc(100dvh - 16px);
+        min-height: 420px;
+        border-radius: 18px;
+        top: 8px;
+        object-position: 62% 50%;
+    }
+    .panel { padding: 58px 12px 18px 12px; }
+    /* tombol tema hanya ikon agar tidak melebar */
+    .tema { top: 10px; right: 10px; width: 36px; height: 36px; padding: 0; justify-content: center; border-radius: 50%; }
+    .tema .lbl-gelap, .tema .lbl-terang { display: none !important; }
+    .logo-form { width: 72px; height: 72px; padding: 5px; margin-bottom: 8px; box-shadow: 0 6px 16px rgba(10, 58, 40, .2); }
+    .card h2 { font-size: 22px; letter-spacing: -.5px; }
+    .card .sub { font-size: 12px; margin-bottom: 14px; line-height: 1.4; }
+    .field { margin-bottom: 11px; }
+    .field label { font-size: 12px; margin-bottom: 5px; }
+    .input input { padding: 11px 38px 11px 36px; border-radius: 10px; }
+    .input svg.ico { left: 11px; width: 16px; height: 16px; }
+    .eye { width: 32px; height: 32px; right: 3px; }
+    .eye svg { width: 18px; height: 18px; }
+    .row { font-size: 12px; margin: 2px 0 14px; }
+    .row input { width: 16px; height: 16px; }
+    .btn { padding: 12px 12px; font-size: 15px; border-radius: 10px; }
+    .alert { font-size: 12px; padding: 10px 12px; }
+    .caps { font-size: 11px; }
+    .foot { font-size: 10.5px; margin-top: 12px; line-height: 1.5; }
+}
+
+/* Ponsel sangat kecil (<= 360px) */
+@media (max-width: 360px) {
+    .login-wrap { grid-template-columns: .42fr 1fr; }
+    .panel { padding-left: 10px; padding-right: 10px; }
+    .card h2 { font-size: 20px; }
+    .logo-form { width: 64px; height: 64px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .card.goyang { animation: none; }
