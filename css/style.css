@@ -3122,7 +3122,6 @@ body.modal-terbuka {
         align-content: start;
         overflow-x: auto;
         overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
     }
     #halamanMonitoring .g.r2:not(.grafik-regional):not(.elemen-tersembunyi) > .c > h2 {
         position: sticky;
@@ -3142,7 +3141,6 @@ body.modal-terbuka {
         max-width: 100%;
         overflow-x: auto;
         overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
     }
     .blok-ringkas > .pdf-sub-title {
         position: sticky;
@@ -3161,7 +3159,6 @@ body.modal-terbuka {
         max-width: 100%;
         overflow-x: auto;
         overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
     }
     .kt-blok > h4,
     .kt-blok > .kt-sub {
