@@ -1582,15 +1582,22 @@ function renderGrafikLaporanResmi() {
 
   // ===== Halaman Grafik Laporan Per Regional (kiri: Produktivitas, kanan: Pencapaian) =====
   const fmtPctExcel = (v) => Number(v).toFixed(2).replace(".", ",") + "%";   // sama dengan format Excel 0.00%
+  // Warna grafik kiri (persen RKAP Tonnase): tertinggi hijau, terendah merah
+  const HIJAU_KUAT = { start: "#047857", end: "#34d399" }, HIJAU_PUCAT = { start: "rgba(4, 120, 87, 0.4)", end: "rgba(52, 211, 153, 0.6)" };
+  const MERAH_KUAT = { start: "#b91c1c", end: "#f87171" }, MERAH_PUCAT = { start: "rgba(185, 28, 28, 0.4)", end: "rgba(248, 113, 113, 0.6)" };
+  // Per CRO (satu daftar urut): 3 teratas hijau tua, 3 terbawah merah, sisanya hijau pucat
+  const warnaTertinggiHijauCro = (d) => (d.n && d.urut >= d.n - 3 && d.urut >= 3) ? MERAH_KUAT : (d.urut < 3 ? HIJAU_KUAT : HIJAU_PUCAT);
+  // Per Wilayah (5 tertinggi & 5 terendah)
+  const warnaTertinggiHijauWil = (d) => d.grup === "top" ? (d.urut < 3 ? HIJAU_KUAT : HIJAU_PUCAT) : (d.urut < 3 ? MERAH_KUAT : MERAH_PUCAT);
   const urutTurun = (daftar, kunci) => [...daftar].sort((a, b) => b[kunci] - a[kunci]);
   const urutNaik = (daftar, kunci) => [...daftar].sort((a, b) => a[kunci] - b[kunci]);
 
   // Per CRO: seluruh baris Subtotal, urut tertinggi -> terendah (tanpa pemisah 5/5)
-  const susunCroDari = (daftar, kunci) => urutTurun(daftar, kunci).map((it, j) => ({ it, grup: "top", urut: j, label: `${j + 1}. ${it.regional}` }));
+  const susunCroDari = (daftar, kunci) => urutTurun(daftar, kunci).map((it, j) => ({ it, grup: "top", urut: j, n: daftar.length, label: `${j + 1}. ${it.regional}` }));
   const susunCro = (kunci) => susunCroDari(listCro, kunci);
   const susunCroMon = (kunci) => susunCroDari(listCroMon, kunci);
-  gambarChartRegional("chRgPtCroSdHi", susunCro("rgQ"), susunCroMon("rgQ"), (i) => i.rgQ, warnaProtas, fmtPctExcel, [], true);
-  gambarChartRegional("chRgPtCroSdBi", susunCro("rgR"), susunCroMon("rgR"), (i) => i.rgR, warnaProtas, fmtPctExcel, [], true);
+  gambarChartRegional("chRgPtCroSdHi", susunCro("rgQ"), susunCroMon("rgQ"), (i) => i.rgQ, warnaTertinggiHijauCro, fmtPctExcel, [], true);
+  gambarChartRegional("chRgPtCroSdBi", susunCro("rgR"), susunCroMon("rgR"), (i) => i.rgR, warnaTertinggiHijauCro, fmtPctExcel, [], true);
   gambarChartRegional("chRgTnCroSdHi", susunCro("rgX"), susunCroMon("rgX"), (i) => i.rgX, (d) => warnaPencChart(d.it.rgX), fmtPctExcel, garis100, true);
   gambarChartRegional("chRgTnCroSdBi", susunCro("rgY"), susunCroMon("rgY"), (i) => i.rgY, (d) => warnaPencChart(d.it.rgY), fmtPctExcel, garis100, true);
 
@@ -1606,8 +1613,8 @@ function renderGrafikLaporanResmi() {
       label: `${j + 1}. ${it.regional} - ${it.wilayah}`
     }));
   };
-  gambarChartRegional("chRgPtWilSdHi", susunWil("rgQ"), susunWilMon("rgQ"), (i) => i.rgQ, warnaProtas, fmtPctExcel);
-  gambarChartRegional("chRgPtWilSdBi", susunWil("rgR"), susunWilMon("rgR"), (i) => i.rgR, warnaProtas, fmtPctExcel);
+  gambarChartRegional("chRgPtWilSdHi", susunWil("rgQ"), susunWilMon("rgQ"), (i) => i.rgQ, warnaTertinggiHijauWil, fmtPctExcel);
+  gambarChartRegional("chRgPtWilSdBi", susunWil("rgR"), susunWilMon("rgR"), (i) => i.rgR, warnaTertinggiHijauWil, fmtPctExcel);
   gambarChartRegional("chRgTnWilSdHi", susunWil("rgX"), susunWilMon("rgX"), (i) => i.rgX, (d) => warnaPencChart(d.it.rgX), fmtPctExcel, garis100);
   gambarChartRegional("chRgTnWilSdBi", susunWil("rgY"), susunWilMon("rgY"), (i) => i.rgY, (d) => warnaPencChart(d.it.rgY), fmtPctExcel, garis100);
 
