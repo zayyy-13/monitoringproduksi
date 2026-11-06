@@ -23,6 +23,7 @@
     hijauTua: "0A3A28", hijau: "1C7A4C", aksen: "2F8F5B", emas: "E8A33D", hijauMuda: "E7F4EC",
     teks: "14231B", redup: "55655B", garis: "DDE5E0", kartu: "F8F9FA", merah: "D1503F", putih: "FFFFFF",
     latar: "F6F9F7",
+    persen: "14231B",        // SATU warna untuk semua angka persen (label batang, 100%, lencana)
   };
   const AKSEN_KPI = ["2F8F5B", "3182CE", "805AD5", "DD6B20"];
   const FONT = "Calibri";
@@ -220,7 +221,7 @@
           const dua = k.grafik.slice(a, a + 2);
           dua.forEach((g, j) => {
             const peringkat = dua.length === 2 ? (j === 0 ? "5 Tertinggi" : "5 Terendah") : "";
-            const biru = "1E2A8F", merah = "B91C1C";
+            const biru = "15803D", merah = "B91C1C";
             g.warna = g.warna.map((w) => w || (dua.length === 2 && j === 1 ? merah : biru));
             g.judul = [k.seksi, peringkat].filter(Boolean).join(" — ") || k.kartu;
             g.sub = ket;
@@ -296,6 +297,14 @@
     };
     const bulanan = dariChart("c1"), perCro = dariChart("c2"), protas = dariChart("c3");
     if (!bulanan || !perCro) throw new Error("Grafik dashboard belum siap. Tunggu sebentar lalu coba lagi.");
+    // garis merah Ton/Ha (sumbu kanan) pada grafik Produksi bulanan (c1) dan Total produksi per CRO (c2)
+    const garisDari = (id) => {
+      const c = typeof charts !== "undefined" ? charts[id] : null;
+      const ds = c && c.data ? c.data.datasets.find((x) => x.type === "line" && !x.hidden) : null;
+      return ds ? ds.data.map((v) => { const n = Number(v); return v == null || v === "" || !isFinite(n) ? null : n; }) : null;
+    };
+    bulanan.garis = garisDari("c1");
+    perCro.garis = garisDari("c2");
 
     const kpi = [...document.querySelectorAll("#kpi > .c")].map((c) => ({
       judul: teks(c.querySelector("span")), nilai: teks(c.querySelector("b")), ket: teks(c.querySelector("i")),
@@ -335,7 +344,7 @@
         const judul = h4 ? [...h4.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").replace(/\s+/g, " ").trim() : cv.id;
         return Object.assign({ judul, sub: teks(kecil) }, data);
       }).filter(Boolean);
-      return { judul: judulKartu, tonnase: /tonnase/i.test(judulKartu), grafik };
+      return { judul: judulKartu, tonnase: !!(h2 && h2.querySelector(".lg-oranye")), grafik };
     }).filter((k) => k.grafik.length);
 
     const kebunBar = bacaKebunBar();
@@ -447,7 +456,8 @@
       s.addShape(pres.ShapeType.ellipse, { x: W - 2.15, y: 0.18, w: 0.7, h: 0.7, fill: { color: C.hijau, transparency: 35 }, line: { color: C.hijau, transparency: 100 } });
       s.addShape(pres.ShapeType.ellipse, { x: W - 1.55, y: 0.33, w: 0.4, h: 0.4, fill: { color: C.emas, transparency: 25 }, line: { color: C.emas, transparency: 100 } });
       s.addShape(pres.ShapeType.ellipse, { x: W - 1.05, y: 0.12, w: 0.9, h: 0.9, fill: { color: C.hijau, transparency: 55 }, line: { color: C.hijau, transparency: 100 } });
-      s.addText(judul, { placeholder: "judul", fit: "shrink" });
+      const ukJudul = judul.length > 40 ? Math.max(17, Math.floor(28 * 40 / judul.length)) : 28;   // judul panjang diperkecil agar muat
+      s.addText(judul, { placeholder: "judul", fit: "shrink", fontSize: ukJudul });
       return s;
     };
     const kartu = (s, x, y, w, h, garis) => s.addShape(pres.ShapeType.roundRect, {
@@ -518,24 +528,47 @@
       });
     }
 
-    /* --- Produksi bulanan --- */
-    const s3 = slideIsi("Produksi Bulanan (Ton)");
-    kartu(s3, 0.5, 1.4, W - 1, 5.0);
-    s3.addChart(pres.charts.BAR, [{ name: "Produksi (Ton)", labels: d.bulanan.label, values: d.bulanan.nilai }], Object.assign({
-      x: 0.65, y: 1.5, w: W - 1.3, h: 4.8, barDir: "col", barGapWidthPct: 40,
-      chartColors: d.bulanan.warna.map(hex), showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: "#,##0", dataLabelFontSize: 12,
-      catAxisLabelFontSize: 13, valAxisLabelFontSize: 11, valAxisLabelFormatCode: "#,##0",
-    }, sumbu));
-    catatan(s3, "Bulan terakhir berwarna oranye karena datanya bisa belum penuh; jangan dibandingkan langsung dengan bulan sebelumnya.", 6.5);
+    /* --- Produksi bulanan & Total produksi per CRO: batang Ton (sumbu kiri) + garis Ton/Ha berlabel (sumbu kanan) --- */
+    const WARNA_GARIS = "DC2626";
+    const grafikProduksi = (sl, label, nilai, warna, garis, geo, gapPct) => {
+      const ada = !!garis && garis.some((v) => v != null);
+      const dasar = Object.assign({ x: geo.x, y: geo.y, w: geo.w, h: geo.h }, sumbu);
+      const opBar = { barDir: "col", barGapWidthPct: gapPct, chartColors: warna.map(hex), showValue: true, dataLabelPosition: "outEnd",
+                      dataLabelFormatCode: "#,##0", dataLabelFontSize: 12, dataLabelColor: C.teks };
+      if (!ada) {
+        sl.addChart(pres.charts.BAR, [{ name: "Produksi (Ton)", labels: label, values: nilai }],
+          Object.assign(dasar, opBar, { catAxisLabelFontSize: 13, valAxisLabelFontSize: 11, valAxisLabelFormatCode: "#,##0" }));
+        return;
+      }
+      // Susunan sama dengan dashboard: batang Ton (sumbu kiri) dan garis Ton/Ha (sumbu kanan merah) pada area yang sama
+      sl.addChart([
+        { type: pres.charts.BAR, data: [{ name: "Ton", labels: label, values: nilai }], options: opBar },
+        { type: pres.charts.LINE, data: [{ name: "Ton/Ha", labels: label, values: garis }], options: {
+            chartColors: [WARNA_GARIS], lineSize: 3, lineSmooth: true, lineDataSymbol: "circle", lineDataSymbolSize: 7,
+            secondaryValAxis: true, secondaryCatAxis: true,
+            showValue: true, dataLabelPosition: "t", dataLabelFormatCode: "#,##0.00", dataLabelFontSize: 10, dataLabelColor: "FFFFFF", dataLabelBkgrdColors: true } },   // label berlatar merah, teks putih: terbaca di atas batang maupun di luar
+      ], Object.assign(dasar, {
+        showLegend: true, legendPos: "b", legendFontSize: 12, legendFontFace: FONT, legendColor: C.teks, displayBlanksAs: "gap",
+        catAxisLabelFontSize: 13,
+        valAxes: [
+          { valAxisLabelFontSize: 11, valAxisLabelFormatCode: "#,##0", valAxisMinVal: 0 },
+          { valAxisLabelFontSize: 11, valAxisLabelFormatCode: "#,##0.00", valAxisLabelColor: WARNA_GARIS, valAxisLineShow: false, valAxisMinVal: 0, valGridLine: { style: "none" } },
+        ],
+        catAxes: [{ catAxisLabelFontSize: 13 }, { catAxisHidden: true }],
+      }));
+    };
 
-    /* --- Total produksi per CRO --- */
-    const s4 = slideIsi("Total Produksi per CRO (Ton)");
+    const adaGarisBln = !!(d.bulanan.garis && d.bulanan.garis.some((v) => v != null));
+    const s3 = slideIsi(adaGarisBln ? "Produksi Bulanan (Ton) & Produktivitas (Ton/Ha)" : "Produksi Bulanan (Ton)");
+    kartu(s3, 0.5, 1.4, W - 1, 5.0);
+    grafikProduksi(s3, d.bulanan.label, d.bulanan.nilai, d.bulanan.warna, d.bulanan.garis, { x: 0.65, y: 1.5, w: W - 1.3, h: 4.8 }, 40);
+    catatan(s3, "Bulan terakhir berwarna oranye karena datanya bisa belum penuh; jangan dibandingkan langsung dengan bulan sebelumnya." +
+                (adaGarisBln ? " Garis merah = Produktivitas (Ton/Ha)." : ""), 6.5);
+
+    const adaGarisCro = !!(d.perCro.garis && d.perCro.garis.some((v) => v != null));
+    const s4 = slideIsi(adaGarisCro ? "Total Produksi per CRO & Produktivitas (Ton/Ha)" : "Total Produksi per CRO (Ton)");
     kartu(s4, 0.5, 1.4, W - 1, 5.45);
-    s4.addChart(pres.charts.BAR, [{ name: "Produksi (Ton)", labels: d.perCro.label.map((l) => "CRO " + l), values: d.perCro.nilai }], Object.assign({
-      x: 0.65, y: 1.5, w: W - 1.3, h: 5.25, barDir: "col", barGapWidthPct: 50, chartColors: d.perCro.warna.map(hex),
-      showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: "#,##0", dataLabelFontSize: 12,
-      catAxisLabelFontSize: 13, valAxisLabelFontSize: 11, valAxisLabelFormatCode: "#,##0",
-    }, sumbu));
+    grafikProduksi(s4, d.perCro.label.map((l) => "CRO " + l), d.perCro.nilai, d.perCro.warna, d.perCro.garis, { x: 0.65, y: 1.5, w: W - 1.3, h: 5.25 }, 50);
 
     /* --- Grafik Laporan Protas & Tonnase --- */
     d.ranking.forEach((k) => {
@@ -550,11 +583,11 @@
         sr.addChart(pres.charts.BAR, [{ name: g.judul, labels: g.label, values: g.nilai }], Object.assign({
           x: x + 0.1, y: 2.25, w: wP - 0.2, h: 4.15, barDir: "bar", barGapWidthPct: 35, catAxisOrientation: "maxMin", valAxisHidden: true,
           chartColors: g.warna.length > 1 ? g.warna.map(hex) : [C.aksen], showValue: true, dataLabelPosition: "outEnd",
-          dataLabelFormatCode: k.tonnase ? '0.0"%"' : "#,##0.00#", dataLabelFontSize: 11, catAxisLabelFontSize: 11,
-        }, sumbu));
+          dataLabelFormatCode: '0.00"%"', dataLabelFontSize: 11, catAxisLabelFontSize: 11,
+        }, sumbu, { dataLabelColor: C.persen }));
       });
-      catatan(sr, k.tonnase ? "Hijau: ≥ 100%; oranye: 80 - < 100%; merah: < 80% (5 tertinggi di atas, 5 terendah di bawah)."
-                            : "Biru: 5 tertinggi; merah: 5 terendah (warna lebih pucat untuk peringkat 4–5).", 6.55);
+      catatan(sr, k.tonnase ? "Hijau: ≥ 100%; oranye: 80 - < 100%; merah: < 80% (tertinggi di atas, terendah di bawah)."
+                            : "Hijau: tertinggi; merah: terendah (warna lebih pucat untuk peringkat berikutnya).", 6.55);
     });
 
     /* --- Grafik Laporan Per Kebun --- */
@@ -572,22 +605,22 @@
           x: cx, y: cy, w: cw2, h: ch2, barDir: "col", barGapWidthPct: 45, valAxisHidden: true,
           chartColors: g.warna.length > 1 ? g.warna.map(hex) : [hex(g.warna[0])], showValue: true, dataLabelPosition: "outEnd",
           dataLabelFormatCode: k.persen ? '#,##0.0"%"' : "#,##0.00", dataLabelFontSize: 10, catAxisLabelFontSize: 9,
-        }, sumbu);
+        }, sumbu, { dataLabelColor: k.persen ? C.persen : C.teks });
         const mks = Math.max.apply(null, g.nilai.concat([0]));
         const garis100 = k.persen && mks >= 100;
         if (garis100) {
-          const M = mks * 1.2, lay = { x: 0.03, y: 0.08, w: 0.94, h: 0.6 };
+          const M = mks * 1.2, lay = { x: 0.03, y: 0.08, w: 0.94, h: 0.72 };
           Object.assign(opsi, { valAxisMinVal: 0, valAxisMaxVal: M, layout: lay });
           const px = cx + lay.x * cw2, py = cy + lay.y * ch2, pw = lay.w * cw2, ph = lay.h * ch2, yL = py + ph * (1 - 100 / M);
           sk.addChart(pres.charts.BAR, [{ name: g.judul, labels: g.label, values: g.nilai }], opsi);
           sk.addShape(pres.ShapeType.line, { x: px, y: yL, w: pw, h: 0, line: { color: "6B7280", width: 1, dashType: "dash" } });
-          sk.addText("100%", { x: px, y: yL - 0.2, w: 0.6, h: 0.18, fontSize: 9, color: C.redup, fontFace: FONT, margin: 0, isTextBox: true });
+          sk.addText("100%", { x: px + pw - 0.6, y: yL - 0.2, w: 0.6, h: 0.18, fontSize: 9, bold: true, color: C.persen, fontFace: FONT, align: "right", margin: 0, isTextBox: true });
         } else {
           sk.addChart(pres.charts.BAR, [{ name: g.judul, labels: g.label, values: g.nilai }], opsi);
         }
       });
-      catatan(sk, k.persen ? "Biru: 5 tertinggi; merah: 5 terendah. Garis putus-putus: acuan 100% RKAP (tampil bila ada kebun yang melampauinya)."
-                           : "Biru: 5 tertinggi; merah: 5 terendah.", 6.55);
+      catatan(sk, k.persen ? "Hijau: 5 tertinggi; merah: 5 terendah. Garis putus-putus: acuan 100% RKAP (tampil bila ada kebun yang melampauinya)."
+                           : "Hijau: 5 tertinggi; merah: 5 terendah.", 6.55);
     });
     (d.kebunGambar || []).forEach((gm) => {
       const sg = slideIsi(gm.judul);
@@ -689,8 +722,8 @@
               const vRk = kRk >= 0 && bar[kRk].nilai[i] != null ? bar[kRk].nilai[i] : 0;
               const cx = px + (i + 0.5) * cw;
               const yAtas = py + ph * (1 - Math.max(v, vRk) / M);
-              sh.addShape(pres.ShapeType.roundRect, { x: cx - 0.24, y: yAtas - 0.6, w: 0.48, h: 0.26, rectRadius: 0.13, fill: { color: hi.warnaBadge }, line: { color: hi.warnaBadge } });
-              sh.addText(teksB, { x: cx - 0.24, y: yAtas - 0.6, w: 0.48, h: 0.26, fontSize: 10, bold: true, color: C.putih, fontFace: FONT, align: "center", valign: "middle", margin: 0, isTextBox: true });
+              sh.addShape(pres.ShapeType.roundRect, { x: cx - 0.27, y: yAtas - 0.6, w: 0.54, h: 0.26, rectRadius: 0.13, fill: { color: C.putih }, line: { color: hi.warnaBadge, width: 1.25 } });
+              sh.addText(teksB, { x: cx - 0.27, y: yAtas - 0.6, w: 0.54, h: 0.26, fontSize: 10, bold: true, color: C.persen, fontFace: FONT, align: "center", valign: "middle", margin: 0, isTextBox: true });
             });
           }
         } else {
