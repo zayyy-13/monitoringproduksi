@@ -247,8 +247,8 @@ body {
 }
 
 /* ---------- Responsif (mobile) ----------
-   Susunan TETAP berdampingan seperti di web (foto kiri, formulir kanan).
-   Yang berubah hanya ukuran: makin sempit layar, makin kecil elemennya. */
+   Tablet / lanskap: tetap berdampingan (foto kiri, formulir kanan).
+   Ponsel potret (<= 560px): foto menjadi banner di atas, formulir penuh di bawah. */
 
 /* Tablet / layar sedang (<= 860px) */
 @media (max-width: 860px) {
@@ -278,52 +278,79 @@ body {
     .foot { font-size: 12px; margin-top: 16px; }
 }
 
-/* Ponsel (<= 560px): foto jadi strip ramping di kiri, formulir di kanan */
+/* Ponsel potret (<= 560px): foto jadi banner di atas, formulir lebar penuh di bawah */
 @media (max-width: 560px) {
-    .login-wrap { grid-template-columns: .4fr 1fr; }
-    .scene { padding: 10px 0 10px 10px; }
+    .login-wrap {
+        position: relative;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+    .scene { padding: max(12px, env(safe-area-inset-top)) 12px 0; }
     .foto {
-        height: calc(100vh - 20px);
-        height: calc(100dvh - 20px);
-        min-height: 420px;
-        border-radius: 20px;
-        top: 10px;
-        object-position: 64% 50%;
+        position: static;
+        height: 210px;
+        min-height: 0;
+        border-radius: 24px;
+        object-position: 50% 62%;
+        cursor: default;
         box-shadow: 0 8px 22px rgba(8, 48, 31, .2);
     }
-    .panel { padding: 64px 14px 20px; }
-    /* tombol tema hanya ikon agar tidak melebar */
-    .tema { top: 12px; right: 12px; width: 38px; height: 38px; padding: 0; justify-content: center; border-radius: 50%; }
+    /* panel tidak jadi acuan posisi, supaya tombol tema menempel di atas foto */
+    .panel {
+        position: static;
+        place-items: start center;
+        padding: 0 22px max(28px, env(safe-area-inset-bottom));
+        font-size: 15px;
+    }
+    .tema {
+        top: calc(max(12px, env(safe-area-inset-top)) + 12px);
+        right: 24px;
+        width: 40px; height: 40px; padding: 0;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--bg);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+    }
     .tema .lbl-gelap, .tema .lbl-terang { display: none !important; }
-    .logo-form { width: 76px; height: 76px; padding: 6px; margin-bottom: 10px; box-shadow: 0 6px 16px rgba(10, 58, 40, .2); }
-    .card h2 { font-size: 24px; letter-spacing: -.6px; }
-    .card .sub { font-size: 12.5px; margin-bottom: 18px; line-height: 1.45; }
-    .field { margin-bottom: 12px; }
-    .field label { font-size: 13px; margin-bottom: 6px; }
-    /* ukuran teks ketikan tetap 16px (mencegah iPhone zoom otomatis); hanya placeholder dikecilkan */
-    .input input { padding: 12px 40px 12px 38px; border-radius: 11px; text-overflow: ellipsis; }
-    .input input::placeholder { font-size: 13px; }
+    .card { max-width: 420px; }
+    /* logo menumpang di tepi bawah foto */
+    .logo-form {
+        position: relative;
+        z-index: 2;
+        width: 92px; height: 92px;
+        margin: -46px auto 12px;
+        padding: 7px;
+        border: 4px solid var(--bg);
+        box-shadow: 0 8px 20px rgba(10, 58, 40, .22);
+    }
+    .card h2 { font-size: 26px; letter-spacing: -.6px; }
+    .card .sub { font-size: 14px; margin-bottom: 22px; line-height: 1.5; }
+    .field { margin-bottom: 14px; }
+    .field label { font-size: 13.5px; margin-bottom: 6px; }
+    /* teks ketikan tetap 16px agar iPhone tidak zoom otomatis */
+    .input input { padding: 14px 48px 14px 46px; border-radius: 12px; font-size: 16px; }
+    .input input::placeholder { font-size: 15px; }
     .input input:focus { box-shadow: 0 0 0 3px rgba(47, 143, 91, .18); }
-    .input svg.ico { left: 12px; width: 17px; height: 17px; }
-    .eye { width: 34px; height: 34px; right: 3px; }
-    .eye svg { width: 18px; height: 18px; }
-    .row { font-size: 12.5px; margin: 4px 0 16px; gap: 6px 8px; }
-    .row label { gap: 7px; }
-    .row input { width: 16px; height: 16px; }
-    .btn { padding: 13px 12px; font-size: 15px; border-radius: 11px; }
-    .alert { font-size: 12px; padding: 10px 12px; margin-bottom: 14px; }
-    .caps { font-size: 11px; }
-    .foot { font-size: 11px; margin-top: 16px; line-height: 1.55; }
+    .input svg.ico { left: 15px; width: 19px; height: 19px; }
+    .eye { width: 38px; height: 38px; right: 5px; }
+    .row { font-size: 14px; margin: 4px 0 18px; gap: 6px 10px; }
+    .row input { width: 17px; height: 17px; }
+    .btn { padding: 15px 16px; font-size: 16px; border-radius: 12px; }
+    .alert { font-size: 13px; padding: 11px 14px; margin-bottom: 14px; }
+    .caps { font-size: 12px; }
+    .foot { font-size: 12px; margin-top: 20px; line-height: 1.6; }
 }
 
 /* Ponsel sangat kecil (<= 360px) */
 @media (max-width: 360px) {
-    .login-wrap { grid-template-columns: .34fr 1fr; }
-    .scene { padding-left: 8px; }
-    .panel { padding-left: 10px; padding-right: 10px; }
-    .card h2 { font-size: 21px; }
-    .logo-form { width: 64px; height: 64px; }
-    .input input::placeholder { font-size: 12px; }
+    .scene { padding-left: 8px; padding-right: 8px; }
+    .foto { height: 180px; }
+    .panel { padding-left: 16px; padding-right: 16px; }
+    .card h2 { font-size: 23px; }
+    .logo-form { width: 80px; height: 80px; margin-top: -40px; }
+    .input input::placeholder { font-size: 14px; }
 }
 
 /* Ponsel posisi lanskap (pendek): rapatkan jarak vertikal */

@@ -615,6 +615,39 @@ function renderGrafikProduksi(wilayah, ringkasan, protas) {
     pointBorderWidth: 2,
   });
 
+  // Label angka Ton/Ha pada titik garis merah (grafik c1 & c2). Hanya menggambar teks, tidak mengubah data.
+  const pluginLabelGaris = {
+    id: "labelGaris",
+    afterDatasetsDraw(chart) {
+      const idx = chart.data.datasets.findIndex((d) => d.type === "line");
+      if (idx < 0) return;
+      const garis = chart.getDatasetMeta(idx), batang = chart.getDatasetMeta(0), ctx = chart.ctx;
+      const t = document.documentElement.getAttribute("data-theme");
+      const gelap = t ? t === "dark" : !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+      ctx.save();
+      ctx.font = fontCanvas(11, 700);
+      ctx.textAlign = "center";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = gelap ? "rgba(15,26,20,.9)" : "rgba(255,255,255,.95)";
+      ctx.fillStyle = gelap ? "#f87171" : WARNA_GARIS;
+      garis.data.forEach((pt, i) => {
+        const v = chart.data.datasets[idx].data[i];
+        if (v == null || !isFinite(v)) return;
+        const teksNilai = fmt(v, 2), lebar = ctx.measureText(teksNilai).width;
+        const px = Math.min(Math.max(pt.x, lebar / 2 + 3), chart.width - lebar / 2 - 3);
+        let py = pt.y - 11;
+        const bar = batang.data[i], nilaiBar = chart.data.datasets[0].data[i];
+        // hindari bertumpuk dengan angka Ton di atas batang
+        if (bar && nilaiBar > 0 && Math.abs(py - (bar.y - 8)) < 14) py = pt.y + 21;
+        if (py < 12) py = pt.y + 21;
+        ctx.strokeText(teksNilai, px, py);
+        ctx.fillText(teksNilai, px, py);
+      });
+      ctx.restore();
+    },
+  };
+
   const opsiGabungan = (adaGaris) => ({
     ...opsi,
     layout: { padding: { top: 24 } },
@@ -651,7 +684,7 @@ function renderGrafikProduksi(wilayah, ringkasan, protas) {
 
   buatChart("c1", {
     type: "bar",
-    plugins: [pluginLabelBar],
+    plugins: [pluginLabelBar, pluginLabelGaris],
     data: {
       labels: label,
       datasets: [
@@ -687,7 +720,7 @@ function renderGrafikProduksi(wilayah, ringkasan, protas) {
 
   buatChart("c2", {
     type: "bar",
-    plugins: [pluginLabelBar],
+    plugins: [pluginLabelBar, pluginLabelGaris],
     data: {
       labels: daftarCro.map((c) => c.replace("CRO ", "")),
       datasets: [

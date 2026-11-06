@@ -577,7 +577,7 @@
 
   // pasangan warna gradasi [awal, akhir]
   // [terang (puncak), gelap (dasar), warna angka]
-  var WARNA_TERTINGGI = ["#3FA9E0", "#22288A", "#22288A"];   // biru langit -> navy
+  var WARNA_TERTINGGI = ["#4ADE80", "#15803D", "#15803D"];   // hijau muda -> hijau tua
   var WARNA_AMBANG_PENCAPAIAN = false;   // true = grafik pencapaian kembali berwarna per ambang (hijau/kuning/merah)
   
   // WARNA TERENDAH DIUBAH MENJADI MERAH (gradasi merah muda ke merah tua)
