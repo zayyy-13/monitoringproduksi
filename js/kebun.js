@@ -674,7 +674,7 @@
     var dataAtas = nilai.map(function (v, i) { return i < nAtas ? v : null; });
     var dataBawah = nilai.map(function (v, i) { return i > nAtas ? v : null; });
     // Pencapaian (kolom S / V): format sama dengan Excel (0.0%)
-    var fmtNilai = jenis === "pt" ? nfTon : function (v) { return fmt(v, "p"); };
+    var fmtNilai = jenis === "pt" ? function (v) { return nfTon(v) + "%"; } : function (v) { return fmt(v, "p"); };
 
     function bungkus(ctx, teks, lebar, maks) {
       var kata = String(teks).split(/\s+/), baris = [], cur = "";

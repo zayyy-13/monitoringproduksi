@@ -604,7 +604,7 @@
         const opsi = Object.assign({
           x: cx, y: cy, w: cw2, h: ch2, barDir: "col", barGapWidthPct: 45, valAxisHidden: true,
           chartColors: g.warna.length > 1 ? g.warna.map(hex) : [hex(g.warna[0])], showValue: true, dataLabelPosition: "outEnd",
-          dataLabelFormatCode: k.persen ? '#,##0.0"%"' : "#,##0.00", dataLabelFontSize: 10, catAxisLabelFontSize: 9,
+          dataLabelFormatCode: k.persen ? '#,##0.0"%"' : '#,##0.00"%"', dataLabelFontSize: 10, catAxisLabelFontSize: 9,
         }, sumbu, { dataLabelColor: k.persen ? C.persen : C.teks });
         const mks = Math.max.apply(null, g.nilai.concat([0]));
         const garis100 = k.persen && mks >= 100;
