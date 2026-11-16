@@ -345,7 +345,7 @@
       '<td class="sa label" colspan="4">' + esc(r[1]) + '</td><td class="teks"></td>' + selAngka(r[2]) + "</tr>";
   }
 
-  var S = { data: null, hal: 0, per: 25, kIdx: [], total: null };
+  var S = { data: null, hal: 0, per: 25, kIdx: [], total: null, croKebun: "" };
 
   // Data tersimpan sebelum kolom Z & AA ada (20 angka) dilengkapi dengan rumus Excel yang sama:
   //   Z  = IFERROR(Q/F, 0) / 1000     AA = W / 1000      (idx: F=0, Q=11, W=17)
@@ -577,11 +577,11 @@
 
   // pasangan warna gradasi [awal, akhir]
   // [terang (puncak), gelap (dasar), warna angka]
-  var WARNA_TERTINGGI = ["#4ADE80", "#15803D", "#15803D"];   // hijau muda -> hijau tua
+  var WARNA_TERTINGGI = ["#22C55E", "#22C55E", "#15803D"];   // hijau (solid)   // hijau muda -> hijau tua
   var WARNA_AMBANG_PENCAPAIAN = false;   // true = grafik pencapaian kembali berwarna per ambang (hijau/kuning/merah)
   
   // WARNA TERENDAH DIUBAH MENJADI MERAH (gradasi merah muda ke merah tua)
-  var WARNA_TERENDAH  = ["#FCA5A5", "#B91C1C", "#B91C1C"];   
+  var WARNA_TERENDAH  = ["#EF4444", "#EF4444", "#B91C1C"];   // merah (solid)   
   
   var WARNA_HIJAU  = ["#4ADE80", "#15803D"];
   var WARNA_ORANYE = ["#FDE047", "#D98E04"];
@@ -590,9 +590,9 @@
   var chartPeringkat = [];
   var nf3 = new Intl.NumberFormat("id-ID", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
-  // Produktivitas (kolom Z / AA): format sama dengan Excel (0.00)
+  // Produktivitas pada grafik & tooltip: satu angka di belakang koma (0.0)
   function nfTon(v) {
-    return nf2.format(bersih(v));
+    return nf1.format(bersih(v));
   }
   function potong(t, maks) { t = String(t); return t.length > maks ? t.slice(0, maks - 1).trim() + "…" : t; }
 
@@ -613,7 +613,7 @@
         v = n[t.pct];
         if (!isFinite(v)) return;
       }
-      out.push({ nama: r[4], wil: r[2], status: r[5], v: v, kgHa: kgHa, n: n });
+      out.push({ nama: r[4], reg: r[1], wil: r[2], status: r[5], v: v, kgHa: kgHa, n: n });
     });
     out.sort(function (a, b) { return b.v - a.v; });
     out.forEach(function (it, i) { it.rank = i + 1; });   // nomor urut untuk label sumbu
@@ -656,10 +656,10 @@
     return WARNA_MERAH;
   }
 
-  function buatGrafikPeringkat(idCanvas, jenis, p) {
+  function buatGrafikPeringkat(idCanvas, jenis, p, cro) {
     var cv = el(idCanvas);
     if (!cv || typeof Chart === "undefined") return;
-    var rk = bagiPeringkat(kumpulkan(S.data.rows.filter(function (r) { return r[0] === "k"; }), jenis, p));
+    var rk = bagiPeringkat(kumpulkan(S.data.rows.filter(function (r) { return r[0] === "k" && (!cro || r[1] === cro); }), jenis, p));
     var tema = warnaTema();
 
     // satu grafik: 5 tertinggi + (celah) + 5 terendah. Tiap grup tetap punya skala sumbu sendiri
@@ -711,30 +711,35 @@
         if (item.length > nAtas + 1 && nAtas > 0) {      // pemisah tipis antara grup tertinggi dan terendah
           var xp = c.getDatasetMeta(0).data[nAtas].x;
           ctx.setLineDash([3, 4]); ctx.lineWidth = 1; ctx.strokeStyle = tema.bd;
-          ctx.beginPath(); ctx.moveTo(xp, area.top); ctx.lineTo(xp, area.bottom + 80); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(xp, area.top); ctx.lineTo(xp, area.bottom + 92); ctx.stroke();
           ctx.setLineDash([]);
         }
         item.forEach(function (it, i) {
           if (nilai[i] === null) return;
           var bar = c.getDatasetMeta(i < nAtas ? 0 : 1).data[i];
-          // Nilai angka di atas batang: diperbesar ukurannya (12px bold) agar sangat jelas
-          ctx.save();
-          ctx.translate(bar.x, bar.y - 6); ctx.rotate(-Math.PI / 2);
-          ctx.font = "800 12px " + FONT_GRAFIK; ctx.fillStyle = tema.tx; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-          ctx.fillText(fmtNilai(nilai[i]), 0, 0);
-          ctx.restore();
-          
+          // Nilai angka di atas batang (teks biasa, mendatar)
+          var teksNilai = fmtNilai(nilai[i]), fs = 11.5;
+          ctx.font = "800 " + fs + "px " + FONT_GRAFIK;
+          if (ctx.measureText(teksNilai).width > lebarKat + 6) { fs = 9.5; ctx.font = "800 " + fs + "px " + FONT_GRAFIK; }
+          ctx.fillStyle = tema.tx; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+          ctx.fillText(teksNilai, bar.x, bar.y - 5);
+
           // Nama kebun & wilayah di bawah sumbu
           ctx.textAlign = "center"; ctx.textBaseline = "top";
           var y = area.bottom + 8;
           
           // Nama kebun diperbesar (11px, bold)
           ctx.font = "800 " + (sempit ? 10 : 11) + "px " + FONT_GRAFIK; ctx.fillStyle = tema.tx;
-          bungkus(ctx, item[i].nama, lebarKat, 3).forEach(function (t) { ctx.fillText(t, bar.x, y); y += sempit ? 12 : 14; });
+          bungkus(ctx, item[i].nama, lebarKat, 4).forEach(function (t) { ctx.fillText(t, bar.x, y); y += sempit ? 12 : 14; });
           
-          if (item[i].wil) {
+          if (item[i].reg) {
             y += 2;
-            // Nama wilayah diperbesar (10px) agar mudah terbaca
+            // Regional (kolom A Excel), berwarna sesuai kelompok
+            ctx.font = "800 " + (sempit ? 9.5 : 10.5) + "px " + FONT_GRAFIK; ctx.fillStyle = (i < nAtas ? WARNA_TERTINGGI : WARNA_TERENDAH)[2];
+            bungkus(ctx, item[i].reg, lebarKat, 1).forEach(function (t) { ctx.fillText(t, bar.x, y); y += 12; });
+          }
+          if (item[i].wil) {
+            // Nama wilayah (kolom B Excel)
             ctx.font = "700 " + (sempit ? 9.5 : 10.5) + "px " + FONT_GRAFIK; ctx.fillStyle = tema.mut;
             bungkus(ctx, item[i].wil, lebarKat, 1).forEach(function (t) { ctx.fillText(t, bar.x, y); y += 12; });
           }
@@ -747,8 +752,8 @@
       return {
         data: data, yAxisID: sumbu, grouped: false,
         backgroundColor: function (c) { var i = c.dataIndex; return i == null ? "#999" : gradasi(c, warna[i]); },
-        borderRadius: { topLeft: 3, topRight: 3, bottomLeft: 0, bottomRight: 0 }, borderSkipped: "bottom",
-        barPercentage: 0.8, categoryPercentage: 0.7, maxBarThickness: 28
+        borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }, borderSkipped: "bottom",
+        barPercentage: 0.7, categoryPercentage: 0.8, maxBarThickness: 40
       };
     }
 
@@ -758,7 +763,7 @@
       options: {
         indexAxis: "x", responsive: true, maintainAspectRatio: false,
         animation: { duration: 550 },
-        layout: { padding: { top: 26, right: 4, bottom: 66, left: 4 } },
+        layout: { padding: { top: 30, right: 4, bottom: 94, left: 4 } },
         scales: {
           x: { grid: { display: false }, border: { display: false }, ticks: { display: false } },
           y: {
@@ -773,21 +778,21 @@
           legend: { display: false },
           tooltip: {
             filter: function (t) { return item[t.dataIndex] !== null; },
-            backgroundColor: "rgba(255,255,255,.98)",
-            titleColor: "#0f172a", bodyColor: "#1e293b", footerColor: "#475569",
-            borderColor: "rgba(100,116,139,.28)", borderWidth: 1,
-            padding: 11, cornerRadius: 9,
-            titleFont: { family: FONT_GRAFIK, size: 12.5, weight: 700 }, bodyFont: { family: FONT_GRAFIK, size: 12 },
+            backgroundColor: "#FFFFFF",
+            titleColor: "#0F172A", bodyColor: "#1E293B", footerColor: "#334155",
+            borderColor: "rgba(100,116,139,.45)", borderWidth: 1,
+            padding: 12, cornerRadius: 12, bodySpacing: 4,
+            titleFont: { family: FONT_GRAFIK, size: 13, weight: 800 }, bodyFont: { family: FONT_GRAFIK, size: 12.5, weight: 600 },
             displayColors: false,
             callbacks: {
               title: function (t) { return item[t[0].dataIndex].nama; },
-              afterTitle: function (t) { var it = item[t[0].dataIndex]; return it.wil + (it.status ? " · " + it.status : ""); },
+              afterTitle: function (t) { var it = item[t[0].dataIndex]; return it.reg + " · " + it.wil + (it.status ? " · " + it.status : ""); },
               label: function (t) {
                 var it = item[t.dataIndex], n = it.n, ln = [];
                 if (jenis === "pt") {
                   ln.push("Produktivitas: " + nfTon(it.v) + " Ton/Ha");
-                  ln.push("Kg/Ha: " + nf2.format(it.kgHa));
-                  ln.push("Produksi: " + nfInt.format(n[p.pt.real]) + " Kg · Luas: " + nf2.format(n[p.pt.luas]) + " Ha");
+                  ln.push("Kg/Ha: " + nf1.format(it.kgHa));
+                  ln.push("Produksi: " + nfInt.format(n[p.pt.real]) + " Kg · Luas: " + nf1.format(n[p.pt.luas]) + " Ha");
                 } else {
                   ln.push("Pencapaian: " + fmt(it.v, "p"));
                   ln.push("Real: " + nfInt.format(n[p.tn.real]) + " Kg");
@@ -816,7 +821,7 @@
   // "awalan" membuat id canvas unik di tiap tempat.
   var TARGET_PERINGKAT = [
     { id: "kebunGrafik", awalan: "kt" },
-    { id: "kebunGrafikPeringkatMon", awalan: "km" }
+    { id: "kebunGrafikPeringkatMon", awalan: "km", ikutRegional: true }
   ];
 
   function blokPeringkat(id, p) {
@@ -833,6 +838,37 @@
     TARGET_PERINGKAT.forEach(function (tgt) { renderPeringkatKe(tgt, kebun); });
   }
 
+  // Halaman Monitoring Produksi: CRO mengikuti pilihan "Pilih regional" (#f) yang sudah ada
+  function croDariRegional() {
+    var f = el("f"), v = f && f.value;
+    return v && v !== "Semua" ? v : "";
+  }
+  // Halaman Grafik Laporan Per Kebun: dropdown CRO sendiri (kolom A Excel)
+  function pasangFilterCro(box) {
+    if (box.__ktCro) return;
+    box.__ktCro = true;
+    box.addEventListener("change", function (e) {
+      var t = e.target;
+      if (!t || !t.matches || !t.matches("select[data-kt-cro]")) return;
+      S.croKebun = t.value;
+      renderGrafikPeringkat();
+    });
+  }
+  function pasangGayaFilter() {
+    if (document.getElementById("ktFilterGaya")) return;
+    var st = document.createElement("style");
+    st.id = "ktFilterGaya";
+    st.textContent =
+      ".kt-filter{grid-column:1/-1;display:flex;justify-content:flex-end;margin-bottom:4px}" +
+      ".kt-filter label,.kt-filter .kt-info{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:700;color:var(--tx,#0f172a)}" +
+      ".kt-filter .kt-info b{padding:4px 12px;border-radius:999px;color:#fff;background:linear-gradient(135deg,#22C55E,#15803D)}" +
+      ".kt-filter select{appearance:none;font:inherit;font-weight:700;padding:8px 34px 8px 14px;border-radius:999px;border:1px solid var(--bd,#d4d4d8);" +
+      "background:var(--cd,#fff) url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2314b8a6' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\") no-repeat right 12px center/12px;" +
+      "color:var(--tx,#0f172a);cursor:pointer;box-shadow:0 1px 3px rgba(15,23,42,.08)}" +
+      ".kt-filter select:focus-visible{outline:2px solid #14b8a6;outline-offset:2px}";
+    document.head.appendChild(st);
+  }
+
   function renderPeringkatKe(tgt, kebun) {
     var box = el(tgt.id);
     if (!box) return;
@@ -844,12 +880,23 @@
       return;
     }
 
+    var cro = "", filterHtml = "";
+    if (tgt.ikutRegional) {
+      cro = croDariRegional();
+      if (cro) filterHtml = '<div class="kt-filter"><span class="kt-info">Mengikuti pilihan regional: <b>' + esc(cro) + "</b></span></div>";
+    }
+    pasangGayaFilter();
+    if (cro && !kebun.some(function (r) { return r[1] === cro; })) {
+      box.innerHTML = filterHtml + '<p class="kg-kosong-teks">Tidak ada data kebun untuk ' + esc(cro) + ".</p>";
+      return;
+    }
+
     var kolPt = "", kolTn = "";
     PERIODE_GRAFIK.forEach(function (p) {
       kolPt += blokPeringkat(aw + "Pt" + p.kunci, p);
       kolTn += blokPeringkat(aw + "Tn" + p.kunci, p);
     });
-    box.innerHTML =
+    box.innerHTML = filterHtml +
       '<section class="kt-kolom"><div class="kt-kepala"><h3>Produktivitas per Kebun (Ton/Ha)</h3>' +
         '<span class="kt-leg"><span><i style="background:linear-gradient(180deg,' + WARNA_TERTINGGI[0] + "," + WARNA_TERTINGGI[1] + ')"></i>Tertinggi</span>' +
         '<span><i style="background:linear-gradient(180deg,' + WARNA_TERENDAH[0] + "," + WARNA_TERENDAH[1] + ')"></i>Terendah</span></span></div>' + kolPt + "</section>" +
@@ -859,13 +906,11 @@
           '<span><i style="background:linear-gradient(180deg,' + WARNA_ORANYE[0] + "," + WARNA_ORANYE[1] + ')"></i>80 - &lt; 100%</span>' +
           '<span><i style="background:linear-gradient(180deg,' + WARNA_MERAH[0] + "," + WARNA_MERAH[1] + ')"></i>&lt; 80%</span></span>' :
           '<span class="kt-leg"><span><i style="background:linear-gradient(180deg,' + WARNA_TERTINGGI[0] + "," + WARNA_TERTINGGI[1] + ')"></i>Tertinggi</span>' +
-          '<span><i style="background:linear-gradient(180deg,' + WARNA_TERENDAH[0] + "," + WARNA_TERENDAH[1] + ')"></i>Terendah</span></span>') + '</div>' + kolTn + "</section>" +
-      '<p class="kt-cat">Tertinggi dan terendah memakai skala sumbu masing-masing agar batang terendah tetap terlihat. Peringkat hanya memuat kebun yang sudah berproduksi (realisasi &gt; 0); pencapaian juga mensyaratkan target RKAP &gt; 0. ' +
-      'Produktivitas memakai nilai kolom Z (s.d Hari Ini) dan kolom AA (s.d Bulan Ini) pada Excel; pencapaian memakai kolom S dan kolom V.</p>';
+          '<span><i style="background:linear-gradient(180deg,' + WARNA_TERENDAH[0] + "," + WARNA_TERENDAH[1] + ')"></i>Terendah</span></span>') + '</div>' + kolTn + "</section>";
 
     PERIODE_GRAFIK.forEach(function (p) {
-      buatGrafikPeringkat(aw + "Pt" + p.kunci + "A", "pt", p);
-      buatGrafikPeringkat(aw + "Tn" + p.kunci + "A", "tn", p);
+      buatGrafikPeringkat(aw + "Pt" + p.kunci + "A", "pt", p, cro);
+      buatGrafikPeringkat(aw + "Tn" + p.kunci + "A", "tn", p, cro);
     });
   }
 
@@ -931,6 +976,12 @@
       S.per = parseInt(pilih.value, 10) || 25;
       S.hal = 0;
       renderTabel();
+    });
+
+    // Pilih regional di Monitoring Produksi -> grafik kebun ikut menampilkan CRO yang dipilih
+    ["f", "fIndikator"].forEach(function (id) {
+      var sel = el(id);
+      if (sel) sel.addEventListener("change", function () { if (S.data) renderGrafikPeringkat(); });
     });
 
     var input = el("fileExcelKebun"), pesan = el("msgKebun");
