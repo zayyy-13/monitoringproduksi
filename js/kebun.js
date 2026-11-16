@@ -735,7 +735,7 @@
           if (item[i].reg) {
             y += 2;
             // Regional (kolom A Excel), berwarna sesuai kelompok
-            ctx.font = "800 " + (sempit ? 9.5 : 10.5) + "px " + FONT_GRAFIK; ctx.fillStyle = (i < nAtas ? WARNA_TERTINGGI : WARNA_TERENDAH)[2];
+            ctx.font = "800 " + (sempit ? 9.5 : 10.5) + "px " + FONT_GRAFIK; ctx.fillStyle = modeGelap() ? (i < nAtas ? "#86EFAC" : "#FCA5A5") : (i < nAtas ? WARNA_TERTINGGI : WARNA_TERENDAH)[2];   // mode gelap: hijau/merah terang agar CRO terbaca
             bungkus(ctx, item[i].reg, lebarKat, 1).forEach(function (t) { ctx.fillText(t, bar.x, y); y += 12; });
           }
           if (item[i].wil) {
