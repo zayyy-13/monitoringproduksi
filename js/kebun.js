@@ -577,11 +577,11 @@
 
   // pasangan warna gradasi [awal, akhir]
   // [terang (puncak), gelap (dasar), warna angka]
-  var WARNA_TERTINGGI = ["#22C55E", "#22C55E", "#15803D"];   // hijau (solid)   // hijau muda -> hijau tua
+  var WARNA_TERTINGGI = ["#15803D", "#14532D", "#14532D"];   // hijau (solid)   // hijau muda -> hijau tua
   var WARNA_AMBANG_PENCAPAIAN = false;   // true = grafik pencapaian kembali berwarna per ambang (hijau/kuning/merah)
   
   // WARNA TERENDAH DIUBAH MENJADI MERAH (gradasi merah muda ke merah tua)
-  var WARNA_TERENDAH  = ["#EF4444", "#EF4444", "#B91C1C"];   // merah (solid)   
+  var WARNA_TERENDAH  = ["#B91C1C", "#991B1B", "#991B1B"];   
   
   var WARNA_HIJAU  = ["#4ADE80", "#15803D"];
   var WARNA_ORANYE = ["#FDE047", "#D98E04"];
