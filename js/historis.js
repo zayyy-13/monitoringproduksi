@@ -645,8 +645,9 @@
         const buku = XLSX.read(await file.arrayBuffer(), { type: "array" });
         const hasil = bacaBuku(buku, file.name);
         data = hasil;
-        try { localStorage.setItem(KUNCI, JSON.stringify(hasil)); localStorage.removeItem(KUNCI_KOSONG); } catch (err) {}
-        pesan.textContent = `✓ Historis & Proyeksi diperbarui: ${file.name}`;
+        let tersimpan = true;
+        try { localStorage.setItem(KUNCI, JSON.stringify(hasil)); localStorage.removeItem(KUNCI_KOSONG); } catch (err) { tersimpan = false; }
+        pesan.textContent = `✓ Historis & Proyeksi diperbarui: ${file.name}` + (tersimpan ? "" : (window.PESAN_GAGAL_SIMPAN || " (Peringatan: data tidak tersimpan di browser)"));
         render();
       } catch (err) {
         pesan.textContent = "Gagal membaca file: " + err.message;

@@ -488,6 +488,19 @@ function renderIndikator(filter) {
   });
 }
 
+// Simpan ke localStorage dan beri tahu hasilnya (sebelumnya gagal simpan tidak terlihat sama sekali).
+// Dipakai juga oleh kebun.js dan historis.js.
+window.simpanLokal = function (kunci, nilai) {
+  try {
+    localStorage.setItem(kunci, JSON.stringify(nilai));
+    return true;
+  } catch (err) {
+    console.warn("Gagal menyimpan " + kunci + " ke penyimpanan browser:", err);
+    return false;
+  }
+};
+window.PESAN_GAGAL_SIMPAN = " (Peringatan: data tidak bisa disimpan di browser, setelah refresh akan kembali ke data lama. Kosongkan data situs/penyimpanan browser lalu unggah ulang.)";
+
 let dataAktif = DATA_AWAL.map(keWilayah);
 let dataLaporanResmiAktif = null;
 
@@ -496,8 +509,8 @@ try {
   if (tersimpanMon) {
     dataAktif = tersimpanMon.wilayah.map(keWilayah);
     dataIndikator = tersimpanMon.indikator;
-    // Data tersimpan dari versi lama belum memuat Ton/Ha -> pakai data bawaan sampai Excel diunggah ulang
-    protasAktif = tersimpanMon.protasBulanan || DATA_PROTAS_AWAL;
+    // Samakan dengan saat unggah (pasangData): bila file Excel tidak punya data Ton/Ha, jangan kembali ke data bawaan lama
+    protasAktif = tersimpanMon.protasBulanan || {};
   }
 
   const tersimpanLap = JSON.parse(localStorage.getItem(KUNCI_LAPORAN) || "null");
@@ -891,8 +904,8 @@ if (inputMon) {
       }
       const hasil = ExcelLoader.baca(tab);
       pasangData(hasil);
-      try { localStorage.setItem(KUNCI_MONITORING, JSON.stringify(hasil)); } catch (err) {}
-      pesan.textContent = `✓ Monitoring diperbarui: ${file.name}`;
+      const tersimpan = window.simpanLokal(KUNCI_MONITORING, hasil);
+      pesan.textContent = `✓ Monitoring diperbarui: ${file.name}` + (tersimpan ? "" : window.PESAN_GAGAL_SIMPAN);
     } catch (err) {
       pesan.textContent = "Gagal membaca file: " + err.message;
     }
@@ -920,8 +933,8 @@ if (inputLap) {
       dataLaporanResmiAktif = hasilLaporan;
       renderTabelLaporanResmi();
 
-      try { localStorage.setItem(KUNCI_LAPORAN, JSON.stringify(hasilLaporan)); } catch (err) {}
-      pesan.textContent = `✓ Laporan Per Regional diperbarui: ${file.name}`;
+      const tersimpanLap = window.simpanLokal(KUNCI_LAPORAN, hasilLaporan);
+      pesan.textContent = `✓ Laporan Per Regional diperbarui: ${file.name}` + (tersimpanLap ? "" : window.PESAN_GAGAL_SIMPAN);
     } catch (err) {
       pesan.textContent = "Gagal membaca file laporan: " + err.message;
     }

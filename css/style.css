@@ -3188,3 +3188,41 @@ body.modal-terbuka {
 @media (max-width: 768px) {
     .grafik-penuh .cv { height: 300px; }
 }
+
+/* Tombol Kosongkan Grafik (Monitoring Produksi) */
+.w .btn-kosong {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: stretch;
+    min-height: 36px;
+    margin: 0;
+    padding: 0 14px;
+    border: 1px solid rgba(220, 38, 38, .55);
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7f1d1d 0%, #b91c1c 60%, #dc2626 100%);
+    color: #fff;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(185, 28, 28, .28);
+    transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.w .btn-kosong svg {
+    width: 17px;
+    height: 17px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.w .btn-kosong:hover { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 6px 16px rgba(185, 28, 28, .4); }
+.w .btn-kosong:active { transform: translateY(0); }
+.w .btn-kosong:focus-visible { outline: 2px solid var(--ac2); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+    .w .btn-kosong { transition: none; }
+}

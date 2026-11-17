@@ -996,8 +996,9 @@
         var hasil = parseLHP(sheetKeCells(buku.Sheets[nama]));
         if (!hasil.rows.some(function (r) { return r[0] === "k"; })) throw new Error("tidak ada data kebun pada file");
         pasang(hasil);
-        try { localStorage.setItem(KUNCI, JSON.stringify(hasil)); } catch (err) {}
-        if (pesan) pesan.textContent = "✓ Laporan Per Kebun diperbarui: " + file.name;
+        var tersimpan = true;
+        try { localStorage.setItem(KUNCI, JSON.stringify(hasil)); } catch (err) { tersimpan = false; }
+        if (pesan) pesan.textContent = "✓ Laporan Per Kebun diperbarui: " + file.name + (tersimpan ? "" : (global.PESAN_GAGAL_SIMPAN || " (Peringatan: data tidak tersimpan di browser)"));
       } catch (err) {
         if (pesan) pesan.textContent = "Gagal membaca file laporan kebun: " + err.message;
       }
